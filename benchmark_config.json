@@ -8,8 +8,10 @@
     "warmup": 1,
     "iters": 3,
     "gpu_mode": "single",
+    "auto_stream_torch_bank": true,
     "faiss": {
       "enabled": true,
+      "disable_when_streaming": true,
       "index": "flat",
       "nlist": 8192,
       "nprobe": 32,

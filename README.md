@@ -48,7 +48,8 @@ Edit `benchmark_config.json` to define global defaults and one or more experimen
     "warmup": 1,
     "iters": 3,
     "gpu_mode": "single",
-    "faiss": { "enabled": true, "index": "flat" }
+    "auto_stream_torch_bank": true,
+    "faiss": { "enabled": true, "disable_when_streaming": true, "index": "flat" }
   },
   "experiments": [
     {"name": "single", "n": 500000, "d": 768, "q": 64, "gpu_mode": "single"},
@@ -65,6 +66,8 @@ In each experiment:
 - `faiss.cache_path` + `faiss.load_cache`: save and/or reload a FAISS index file.
 - `tqdm.enabled`: enable progress bars for setup/benchmark loops.
 - `stream_torch_bank`: stream random bank chunks for Torch so huge runs don't OOM from allocating the full bank tensor.
+- `auto_stream_torch_bank`: automatically turn on `stream_torch_bank` when estimated bank bytes exceed ~80% of visible free GPU memory.
+- `faiss.disable_when_streaming`: if `true`, FAISS is skipped (instead of raising) when streaming mode is active.
 
 ## 3) Run
 

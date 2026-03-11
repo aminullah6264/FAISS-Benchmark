@@ -50,6 +50,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--faiss_load_cache", action="store_true", help="Load FAISS index from --faiss_cache_path if present")
     p.add_argument("--no_tqdm", action="store_true", help="Disable tqdm progress bars")
     p.add_argument("--stream_torch_bank", action="store_true", help="Stream random bank chunks for Torch so full bank is never materialized in GPU memory")
+    p.add_argument("--no_auto_stream_torch_bank", action="store_true", help="Disable automatic stream_torch_bank fallback when bank estimate exceeds available GPU memory")
+    p.add_argument("--faiss_disable_when_streaming", action="store_true", help="If FAISS is enabled and stream_torch_bank is active, skip FAISS instead of raising an error")
     return p.parse_args()
 
 
@@ -382,6 +384,7 @@ def config_to_experiments(args: argparse.Namespace) -> list[dict[str, Any]]:
             "train_ivf": args.train_ivf,
             "cache_path": args.faiss_cache_path,
             "load_cache": args.faiss_load_cache,
+            "disable_when_streaming": args.faiss_disable_when_streaming,
         },
         "embedding_cache": {
             "path": args.embedding_cache_path,
@@ -389,6 +392,7 @@ def config_to_experiments(args: argparse.Namespace) -> list[dict[str, Any]]:
         },
         "tqdm": {"enabled": not args.no_tqdm},
         "stream_torch_bank": args.stream_torch_bank,
+        "auto_stream_torch_bank": not args.no_auto_stream_torch_bank,
     }]
 
 
@@ -417,7 +421,7 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
     emb_reuse = bool(cache_cfg.get("reuse", False))
     bank_bytes = exp["n"] * exp["d"] * (2 if exp["dtype"] == "fp16" else 4)
     free_bytes = available_gpu_bytes(gpu_mode)
-    auto_stream = bank_bytes > int(0.8 * free_bytes)
+    auto_stream = bool(exp.get("auto_stream_torch_bank", True)) and bank_bytes > int(0.8 * free_bytes)
     stream_torch_bank = bool(exp.get("stream_torch_bank", False) or auto_stream)
     if stream_torch_bank and emb_path:
         print("[Cache] embedding_cache is ignored in stream_torch_bank mode.")
@@ -479,6 +483,13 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
     faiss_cfg = exp.get("faiss", {})
     if faiss_cfg.get("enabled", False):
         if stream_torch_bank:
+            if faiss_cfg.get("disable_when_streaming", True):
+                print("[FAISS] Skipped because stream_torch_bank is active. Set faiss.disable_when_streaming=false to raise instead.")
+                result["faiss"] = {
+                    "skipped": True,
+                    "reason": "stream_torch_bank_active",
+                }
+                return result
             raise RuntimeError("FAISS benchmark requires materialized bank embeddings; disable stream_torch_bank or disable FAISS.")
         index_type = faiss_cfg.get("index", "flat")
         if index_type == "flat":
