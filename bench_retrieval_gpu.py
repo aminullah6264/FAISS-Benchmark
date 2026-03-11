@@ -72,6 +72,25 @@ def make_random_embeddings(n: int, d: int, dtype: torch.dtype, device: torch.dev
     return torch.randn((n, d), device=device, dtype=dtype)
 
 
+def make_random_embeddings_sharded(n: int, d: int, dtype: torch.dtype, seed: int, normalize: bool, show_progress: bool = False) -> tuple[list[torch.Tensor], list[int]]:
+    ngpu = torch.cuda.device_count()
+    shard_sizes = [n // ngpu + (1 if i < n % ngpu else 0) for i in range(ngpu)]
+    shard_offsets = [0]
+    for s in shard_sizes[:-1]:
+        shard_offsets.append(shard_offsets[-1] + s)
+
+    bank_shards: list[torch.Tensor] = []
+    enum_shards = list(enumerate(zip(shard_offsets, shard_sizes)))
+    for i, (offset, size) in progress(enum_shards, desc="Generating bank shards", total=len(enum_shards), enabled=show_progress):
+        gen = torch.Generator(device=f"cuda:{i}")
+        gen.manual_seed(int(seed + offset))
+        shard = torch.randn((size, d), device=f"cuda:{i}", dtype=dtype, generator=gen)
+        if normalize:
+            shard = l2_normalize(shard)
+        bank_shards.append(shard)
+    return bank_shards, shard_offsets
+
+
 def bytes_human(nbytes: int) -> str:
     units = ["B", "KB", "MB", "GB", "TB"]
     x = float(nbytes)
@@ -155,26 +174,15 @@ def bench_torch_single(bank: torch.Tensor, queries: torch.Tensor, k: int, chunk:
     return float(np.mean(ts)), float(np.std(ts)), scores, idx
 
 
-def bench_torch_multi(bank: torch.Tensor, queries: torch.Tensor, k: int, chunk: int, warmup: int, iters: int, show_progress: bool = False):
-    ngpu = torch.cuda.device_count()
-    shard_sizes = [bank.shape[0] // ngpu + (1 if i < bank.shape[0] % ngpu else 0) for i in range(ngpu)]
-    starts = [0]
-    for s in shard_sizes[:-1]:
-        starts.append(starts[-1] + s)
-
-    bank_shards = []
-    enum_shards = list(enumerate(zip(starts, shard_sizes)))
-    for i, (start, size) in progress(enum_shards, desc="Sharding bank to GPUs", total=len(enum_shards), enabled=show_progress):
-        bank_shards.append(bank[start:start + size].to(f"cuda:{i}", non_blocking=True))
-
+def bench_torch_multi_sharded(bank_shards: list[torch.Tensor], shard_offsets: list[int], queries: torch.Tensor, k: int, chunk: int, warmup: int, iters: int, show_progress: bool = False):
     for _ in progress(range(warmup), desc="Multi-GPU warmup iterations", total=warmup, enabled=show_progress):
-        _ = torch_topk_chunked_ip_multi_gpu(queries, bank_shards, starts, k=k, chunk=chunk, show_progress=False)
+        _ = torch_topk_chunked_ip_multi_gpu(queries, bank_shards, shard_offsets, k=k, chunk=chunk, show_progress=False)
         torch.cuda.synchronize()
 
     ts = []
     for _ in progress(range(iters), desc="Multi-GPU timed iterations", total=iters, enabled=show_progress):
         t0 = now()
-        scores, idx = torch_topk_chunked_ip_multi_gpu(queries, bank_shards, starts, k=k, chunk=chunk, show_progress=False)
+        scores, idx = torch_topk_chunked_ip_multi_gpu(queries, bank_shards, shard_offsets, k=k, chunk=chunk, show_progress=False)
         torch.cuda.synchronize()
         ts.append(now() - t0)
 
@@ -426,6 +434,9 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
     if stream_torch_bank and emb_path:
         print("[Cache] embedding_cache is ignored in stream_torch_bank mode.")
 
+    bank = None
+    bank_shards = None
+    shard_offsets = None
     if (not stream_torch_bank) and emb_path and emb_reuse and Path(emb_path).exists():
         cached = np.load(emb_path)
         bank = torch.from_numpy(cached["bank"]).to(torch.device("cuda:0"), dtype=dtype)
@@ -434,13 +445,20 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
     else:
         queries = make_random_embeddings(exp["q"], exp["d"], dtype=dtype, device=torch.device("cuda:0"), seed=exp["seed"] + 999)
         if not stream_torch_bank:
-            bank = make_random_embeddings(exp["n"], exp["d"], dtype=dtype, device=torch.device("cuda:0"), seed=exp["seed"])
-        if (not stream_torch_bank) and emb_path:
+            if gpu_mode == "multi":
+                if emb_path:
+                    print("[Cache] embedding_cache is ignored for generated multi-GPU shards.")
+                bank_shards, shard_offsets = make_random_embeddings_sharded(
+                    exp["n"], exp["d"], dtype=dtype, seed=exp["seed"], normalize=bool(exp.get("normalize", True)), show_progress=show_progress
+                )
+            else:
+                bank = make_random_embeddings(exp["n"], exp["d"], dtype=dtype, device=torch.device("cuda:0"), seed=exp["seed"])
+        if (not stream_torch_bank) and emb_path and bank is not None:
             np.savez(emb_path, bank=bank.detach().float().cpu().numpy(), queries=queries.detach().float().cpu().numpy())
             print(f"[Cache] Saved embeddings to {emb_path}")
 
     if exp.get("normalize", True):
-        if not stream_torch_bank:
+        if not stream_torch_bank and bank is not None:
             bank = l2_normalize(bank)
         queries = l2_normalize(queries)
 
@@ -459,7 +477,19 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
     elif gpu_mode == "single":
         t_mean, t_std, _, torch_idx = bench_torch_single(bank, queries, k=exp["k"], chunk=exp["chunk"], warmup=exp["warmup"], iters=exp["iters"], show_progress=show_progress)
     else:
-        t_mean, t_std, _, torch_idx = bench_torch_multi(bank, queries, k=exp["k"], chunk=exp["chunk"], warmup=exp["warmup"], iters=exp["iters"], show_progress=show_progress)
+        if bank_shards is None or shard_offsets is None:
+            if bank is None:
+                raise RuntimeError("Expected either precomputed multi-GPU bank shards or a materialized bank tensor.")
+            ngpu = torch.cuda.device_count()
+            shard_sizes = [bank.shape[0] // ngpu + (1 if i < bank.shape[0] % ngpu else 0) for i in range(ngpu)]
+            shard_offsets = [0]
+            for s in shard_sizes[:-1]:
+                shard_offsets.append(shard_offsets[-1] + s)
+            bank_shards = []
+            enum_shards = list(enumerate(zip(shard_offsets, shard_sizes)))
+            for i, (start, size) in progress(enum_shards, desc="Sharding bank to GPUs", total=len(enum_shards), enabled=show_progress):
+                bank_shards.append(bank[start:start + size].to(f"cuda:{i}", non_blocking=True))
+        t_mean, t_std, _, torch_idx = bench_torch_multi_sharded(bank_shards, shard_offsets, queries, k=exp["k"], chunk=exp["chunk"], warmup=exp["warmup"], iters=exp["iters"], show_progress=show_progress)
 
     t_flops = torch_flops(exp["n"], exp["d"], exp["q"])
     result: dict[str, Any] = {
@@ -491,6 +521,8 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
                 }
                 return result
             raise RuntimeError("FAISS benchmark requires materialized bank embeddings; disable stream_torch_bank or disable FAISS.")
+        if bank is None:
+            raise RuntimeError("FAISS benchmark requires a materialized bank tensor; disable FAISS or use a smaller bank size for multi-GPU runs.")
         index_type = faiss_cfg.get("index", "flat")
         if index_type == "flat":
             build_t, search_t, _, I = bench_faiss_flat(
