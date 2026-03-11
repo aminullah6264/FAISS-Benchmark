@@ -20,7 +20,7 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 # FAISS GPU build (recommended via conda-forge)
 conda install -c conda-forge faiss-gpu -y
 
-pip install numpy
+pip install numpy tqdm
 ```
 
 ### Fair benchmarking checklist
@@ -61,6 +61,10 @@ In each experiment:
 - `n`: number of database vectors to index/search against.
 - `d`: embedding dimensionality (number of features per vector).
 - `q`: number of query vectors issued in that benchmark run (query batch size).
+- `embedding_cache.path` + `embedding_cache.reuse`: save and/or reload generated bank/query vectors from `.npz`.
+- `faiss.cache_path` + `faiss.load_cache`: save and/or reload a FAISS index file.
+- `tqdm.enabled`: enable progress bars for setup/benchmark loops.
+- `stream_torch_bank`: stream random bank chunks for Torch so huge runs don't OOM from allocating the full bank tensor.
 
 ## 3) Run
 
@@ -72,7 +76,23 @@ python bench_retrieval_gpu.py --config benchmark_config.json --output_json bench
 ### CLI mode (single experiment)
 ```bash
 python bench_retrieval_gpu.py --name cli_run --n 1000000 --d 1024 --q 64 --k 10 --gpu_mode single --faiss --faiss_index flat
+
+# Reuse cached embeddings and FAISS index
+python bench_retrieval_gpu.py \
+  --name cached_run --n 1000000 --d 1024 --q 64 --k 10 \
+  --faiss --faiss_index flat \
+  --embedding_cache_path ./cache/embeddings.npz --reuse_embedding_cache \
+  --faiss_cache_path ./cache/faiss_flat.index --faiss_load_cache
+
+# Large torch-only run without materializing full bank on GPU
+python bench_retrieval_gpu.py --config benchmark_config.json --stream_torch_bank
 ```
+
+## How FAISS stores/caches features
+
+- FAISS stores vectors inside an `Index` object (e.g., `IndexFlatIP`, `IndexIVFPQ`) after `index.add(xb)`.
+- To persist, use `faiss.write_index(index_cpu, "path.index")`; to load, use `faiss.read_index("path.index")`.
+- In this script, GPU indexes are converted to CPU before writing, and CPU indexes are moved back to GPU for search.
 
 ## 4) Output JSON
 
