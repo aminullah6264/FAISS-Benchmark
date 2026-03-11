@@ -1,0 +1,40 @@
+{
+  "global": {
+    "dtype": "fp16",
+    "k": 10,
+    "chunk": 250000,
+    "seed": 123,
+    "normalize": true,
+    "warmup": 1,
+    "iters": 3,
+    "gpu_mode": "single",
+    "faiss": {
+      "enabled": true,
+      "index": "flat",
+      "nlist": 8192,
+      "nprobe": 32,
+      "pq_m": 32,
+      "train_ivf": 200000
+    }
+  },
+  "experiments": [
+    {
+      "name": "single_gpu_smoke",
+      "n": 500000,
+      "d": 768,
+      "q": 64,
+      "gpu_mode": "single"
+    },
+    {
+      "name": "multi_gpu_smoke",
+      "n": 1000000,
+      "d": 1024,
+      "q": 128,
+      "gpu_mode": "multi",
+      "faiss": {
+        "enabled": true,
+        "index": "flat"
+      }
+    }
+  ]
+}
