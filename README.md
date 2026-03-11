@@ -57,6 +57,11 @@ Edit `benchmark_config.json` to define global defaults and one or more experimen
 }
 ```
 
+In each experiment:
+- `n`: number of database vectors to index/search against.
+- `d`: embedding dimensionality (number of features per vector).
+- `q`: number of query vectors issued in that benchmark run (query batch size).
+
 ## 3) Run
 
 ### Config mode (recommended)
