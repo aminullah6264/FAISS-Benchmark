@@ -22,16 +22,64 @@
   "experiments": [
     {
       "name": "single_gpu_smoke",
-      "n": 500000,
+      "n": 24000000,
       "d": 768,
-      "q": 64,
-      "gpu_mode": "single"
+      "q": 4,
+      "gpu_mode": "single",
+      "faiss": {
+        "enabled": true,
+        "index": "flat"
+      }
     },
     {
       "name": "multi_gpu_smoke",
-      "n": 1000000,
-      "d": 1024,
-      "q": 128,
+      "n": 24000000,
+      "d": 768,
+      "q": 4,
+      "gpu_mode": "multi",
+      "faiss": {
+        "enabled": true,
+        "index": "flat"
+      }
+    },
+    {
+      "name": "single_gpu_smoke",
+      "n": 24000000,
+      "d": 2048,
+      "q": 4,
+      "gpu_mode": "single",
+      "faiss": {
+        "enabled": true,
+        "index": "flat"
+      }
+    },
+    {
+      "name": "multi_gpu_smoke",
+      "n": 24000000,
+      "d": 2048,
+      "q": 4,
+      "gpu_mode": "multi",
+      "faiss": {
+        "enabled": true,
+        "index": "flat"
+      }
+    },
+    {
+      "name": "single_gpu_smoke",
+      "n": 24000000,
+      "d": 4096,
+      "q": 4,
+      "gpu_mode": "single",
+      "faiss": {
+        "enabled": true,
+        "index": "flat"
+      }
+    },
+    {
+      "name": "multi_gpu_smoke",
+      "n": 24000000,
+      "d": 4096,
+      "q": 4,
       "gpu_mode": "multi",
       "faiss": {
         "enabled": true,
