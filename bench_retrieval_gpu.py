@@ -43,6 +43,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--nprobe", type=int, default=32)
     p.add_argument("--pq_m", type=int, default=32)
     p.add_argument("--train_ivf", type=int, default=200_000)
+    p.add_argument(
+        "--faiss_add_batch_size",
+        type=int,
+        default=250_000,
+        help="Batch size for streaming vectors into FAISS add() to reduce peak memory",
+    )
 
     p.add_argument("--embedding_cache_path", type=str, default=None, help="Optional .npz path to save/load bank+query embeddings")
     p.add_argument("--reuse_embedding_cache", action="store_true", help="Load embeddings from --embedding_cache_path if present")
@@ -248,27 +254,42 @@ def bench_torch_single_streaming(
     return float(np.mean(ts)), float(np.std(ts)), scores, idx
 
 
-def bench_faiss_flat(bank: torch.Tensor, queries: torch.Tensor, k: int, gpu_mode: str, cache_path: str | None = None, load_cache: bool = False):
+
+
+def bank_numpy_batches(tensor: torch.Tensor, batch_size: int):
+    n = tensor.shape[0]
+    for start in range(0, n, batch_size):
+        end = min(start + batch_size, n)
+        yield tensor[start:end].detach().to(device="cpu", dtype=torch.float32).numpy()
+
+
+def bench_faiss_flat(bank: torch.Tensor, queries: torch.Tensor, k: int, gpu_mode: str, cache_path: str | None = None, load_cache: bool = False, add_batch_size: int = 250_000):
     import faiss
 
-    xb = bank.detach().float().cpu().numpy()
-    xq = queries.detach().float().cpu().numpy()
+    xq = queries.detach().to(device="cpu", dtype=torch.float32).numpy()
 
     index_cpu = None
     build_t = 0.0
     if cache_path and load_cache and Path(cache_path).exists():
         index_cpu = faiss.read_index(cache_path)
     else:
-        index_cpu = faiss.IndexFlatIP(xb.shape[1])
+        index_cpu = faiss.IndexFlatIP(bank.shape[1])
+        batch_size = max(1, int(add_batch_size))
         if cache_path and gpu_mode == "multi":
-            t0 = now(); index_cpu.add(xb); t1 = now(); build_t = t1 - t0
+            t0 = now()
+            for xb_batch in bank_numpy_batches(bank, batch_size):
+                index_cpu.add(xb_batch)
+            t1 = now(); build_t = t1 - t0
         else:
             if gpu_mode == "multi":
                 index_gpu_build = faiss.index_cpu_to_all_gpus(index_cpu)
             else:
                 res_build = faiss.StandardGpuResources()
                 index_gpu_build = faiss.index_cpu_to_gpu(res_build, 0, index_cpu)
-            t0 = now(); index_gpu_build.add(xb); t1 = now(); build_t = t1 - t0
+            t0 = now()
+            for xb_batch in bank_numpy_batches(bank, batch_size):
+                index_gpu_build.add(xb_batch)
+            t1 = now(); build_t = t1 - t0
             index_cpu = faiss.index_gpu_to_cpu(index_gpu_build)
         if cache_path:
             faiss.write_index(index_cpu, cache_path)
@@ -285,6 +306,7 @@ def bench_faiss_flat(bank: torch.Tensor, queries: torch.Tensor, k: int, gpu_mode
 
 
 def bench_faiss_ivfpq(
+
     bank: torch.Tensor,
     queries: torch.Tensor,
     k: int,
@@ -295,24 +317,23 @@ def bench_faiss_ivfpq(
     seed: int,
     cache_path: str | None = None,
     load_cache: bool = False,
+    add_batch_size: int = 250_000,
 ):
     import faiss
 
-    xb = bank.detach().float().cpu().numpy()
-    xq = queries.detach().float().cpu().numpy()
-
+    xq = queries.detach().to(device="cpu", dtype=torch.float32).numpy()
     res = faiss.StandardGpuResources()
     if cache_path and load_cache and Path(cache_path).exists():
         index_cpu = faiss.read_index(cache_path)
         train_t = 0.0
         add_t = 0.0
     else:
-        d = xb.shape[1]
-        n = xb.shape[0]
+        d = bank.shape[1]
+        n = bank.shape[0]
         train_ivf = min(int(train_ivf), n)
         rng = np.random.RandomState(seed)
         tr_idx = rng.choice(n, size=train_ivf, replace=False)
-        xt = xb[tr_idx]
+        xt = bank[tr_idx].detach().to(device="cpu", dtype=torch.float32).numpy()
 
         quantizer = faiss.IndexFlatIP(d)
         index_cpu = faiss.IndexIVFPQ(quantizer, d, int(nlist), int(pq_m), 8)
@@ -321,7 +342,10 @@ def bench_faiss_ivfpq(
         index_gpu_build = faiss.index_cpu_to_gpu(res, 0, index_cpu)
 
         t0 = now(); index_gpu_build.train(xt); t1 = now(); train_t = t1 - t0
-        t2 = now(); index_gpu_build.add(xb); t3 = now(); add_t = t3 - t2
+        t2 = now()
+        for xb_batch in bank_numpy_batches(bank, max(1, int(add_batch_size))):
+            index_gpu_build.add(xb_batch)
+        t3 = now(); add_t = t3 - t2
         index_cpu = faiss.index_gpu_to_cpu(index_gpu_build)
         if cache_path:
             faiss.write_index(index_cpu, cache_path)
@@ -390,6 +414,7 @@ def config_to_experiments(args: argparse.Namespace) -> list[dict[str, Any]]:
             "nprobe": args.nprobe,
             "pq_m": args.pq_m,
             "train_ivf": args.train_ivf,
+            "add_batch_size": args.faiss_add_batch_size,
             "cache_path": args.faiss_cache_path,
             "load_cache": args.faiss_load_cache,
             "disable_when_streaming": args.faiss_disable_when_streaming,
@@ -527,7 +552,8 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
         if index_type == "flat":
             build_t, search_t, _, I = bench_faiss_flat(
                 bank, queries, exp["k"], gpu_mode=gpu_mode,
-                cache_path=faiss_cfg.get("cache_path"), load_cache=bool(faiss_cfg.get("load_cache", False))
+                cache_path=faiss_cfg.get("cache_path"), load_cache=bool(faiss_cfg.get("load_cache", False)),
+                add_batch_size=int(faiss_cfg.get("add_batch_size", 250_000)),
             )
             rec = recall_at_k(torch_idx.detach().cpu().numpy(), I, k=exp["k"], show_progress=show_progress)
             f_flops = torch_flops(exp["n"], exp["d"], exp["q"])
@@ -545,7 +571,8 @@ def run_experiment(exp: dict[str, Any]) -> dict[str, Any]:
                 print("[FAISS] IVFPQ multi-GPU not enabled in this script; running on cuda:0.")
             train_t, add_t, search_t, _, I = bench_faiss_ivfpq(
                 bank, queries, exp["k"], faiss_cfg["nlist"], faiss_cfg["nprobe"], faiss_cfg["pq_m"], faiss_cfg["train_ivf"], exp["seed"],
-                cache_path=faiss_cfg.get("cache_path"), load_cache=bool(faiss_cfg.get("load_cache", False))
+                cache_path=faiss_cfg.get("cache_path"), load_cache=bool(faiss_cfg.get("load_cache", False)),
+                add_batch_size=int(faiss_cfg.get("add_batch_size", 250_000)),
             )
             rec = recall_at_k(torch_idx.detach().cpu().numpy(), I, k=exp["k"], show_progress=show_progress)
             approx_flops = ivfpq_estimated_flops(exp["n"], exp["d"], exp["q"], faiss_cfg["nlist"], faiss_cfg["nprobe"])
