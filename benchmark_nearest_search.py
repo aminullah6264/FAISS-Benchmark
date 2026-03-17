@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing as mp
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
@@ -282,6 +283,39 @@ def bench_faiss(
     }
 
 
+def _bench_faiss_worker(args: Dict[str, Any], result_queue: "mp.Queue[Dict[str, Any]]") -> None:
+    try:
+        result = bench_faiss(**args)
+        result_queue.put({"ok": True, "result": result})
+    except Exception as e:
+        result_queue.put({"ok": False, "error": str(e)})
+
+
+def bench_faiss_isolated(**kwargs: Any) -> Dict[str, Any]:
+    """Run FAISS benchmark in a subprocess so native crashes don't abort the full run."""
+    ctx = mp.get_context("spawn")
+    result_queue: "mp.Queue[Dict[str, Any]]" = ctx.Queue()
+    proc = ctx.Process(target=_bench_faiss_worker, args=(kwargs, result_queue))
+    proc.start()
+    proc.join()
+
+    if proc.exitcode == 0:
+        if result_queue.empty():
+            raise RuntimeError("FAISS subprocess exited successfully but returned no result")
+        msg = result_queue.get()
+        if msg.get("ok"):
+            return msg["result"]
+        raise RuntimeError(msg.get("error", "Unknown FAISS subprocess error"))
+
+    if proc.exitcode is None:
+        raise RuntimeError("FAISS subprocess did not terminate cleanly")
+
+    if proc.exitcode < 0:
+        raise RuntimeError(f"FAISS subprocess terminated by signal {-proc.exitcode}")
+
+    raise RuntimeError(f"FAISS subprocess exited with code {proc.exitcode}")
+
+
 def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
     dataset_path = Path(exp_cfg["dataset_path"])
     data = load_dataset(dataset_path)
@@ -314,7 +348,7 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
                             batch_size=exp_cfg["torch_batch_size"],
                         )
                     else:
-                        result = bench_faiss(
+                        result = bench_faiss_isolated(
                             bank_np=bank,
                             queries_np=queries,
                             precision=precision,
