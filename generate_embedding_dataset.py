@@ -5,6 +5,7 @@ Generate a synthetic embedding dataset and save to disk for benchmarking.
 Usage:
     python generate_embedding_dataset.py --n 5000000 --d 768 --output /mnt/projects/tool-control/results/embeddings_5M_768
     python generate_embedding_dataset.py --n 5000000 --d 2048 --output /mnt/projects/tool-control/results/embeddings_5M_2048
+    python generate_embedding_dataset.py --n 5000000 --d 2304 --output /mnt/projects/tool-control/results/embeddings_5M_2304
     python generate_embedding_dataset.py --n 5000000 --d 4096 --output /mnt/projects/tool-control/results/embeddings_5M_4096
 
 This creates a directory with:

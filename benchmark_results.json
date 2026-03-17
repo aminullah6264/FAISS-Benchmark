@@ -1,0 +1,1898 @@
+{
+  "config_path": "benchmark_config.json",
+  "timestamp_epoch_s": 1773773875.3638995,
+  "num_experiments": 4,
+  "experiments": [
+    {
+      "experiment_name": "dataset_1_768d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768",
+      "dataset_meta": {
+        "n": 5000000,
+        "d": 768,
+        "q": 64,
+        "dtype": "fp32",
+        "np_dtype": "<class 'numpy.float32'>",
+        "seed": 42,
+        "normalize": true,
+        "id_offset": 0,
+        "files": {
+          "bank": "bank.dat",
+          "queries": "queries.dat",
+          "ids": "ids.dat"
+        },
+        "shapes": {
+          "bank": [
+            5000000,
+            768
+          ],
+          "queries": [
+            64,
+            768
+          ],
+          "ids": [
+            5000000
+          ]
+        },
+        "generation_time_s": 627.52
+      },
+      "settings": {
+        "metric": "ip",
+        "top_k": 10,
+        "precisions": [
+          "fp32",
+          "fp16"
+        ],
+        "gpu_modes": [
+          "single",
+          "multi"
+        ],
+        "frameworks": [
+          "torch"
+        ],
+        "warmup_runs": 2,
+        "timed_runs": 10,
+        "torch_batch_size": 64,
+        "faiss_batch_size": 256,
+        "nprobe": 1
+      },
+      "results": [
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 1.698845,
+          "total_timed_time_s": 0.346452,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.541331,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              0
+            ],
+            "after_setup_allocated_mib": [
+              14648
+            ],
+            "after_timed_allocated_mib": [
+              14656
+            ],
+            "peak_allocated_mib": [
+              15887
+            ],
+            "setup_delta_mib": [
+              14648
+            ],
+            "timed_end_delta_mib": [
+              14656
+            ],
+            "peak_delta_mib": [
+              15887
+            ]
+          },
+          "experiment_name": "dataset_1_768d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 0.778062,
+          "total_timed_time_s": 0.091794,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.143428,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              0,
+              0,
+              0
+            ],
+            "after_setup_allocated_mib": [
+              3670,
+              3662,
+              3662,
+              3662
+            ],
+            "after_timed_allocated_mib": [
+              3670,
+              3670,
+              3670,
+              3670
+            ],
+            "peak_allocated_mib": [
+              3978,
+              3978,
+              3978,
+              3978
+            ],
+            "setup_delta_mib": [
+              3662,
+              3662,
+              3662,
+              3662
+            ],
+            "timed_end_delta_mib": [
+              3662,
+              3670,
+              3670,
+              3670
+            ],
+            "peak_delta_mib": [
+              3970,
+              3978,
+              3978,
+              3978
+            ]
+          },
+          "experiment_name": "dataset_1_768d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 0.360961,
+          "total_timed_time_s": 0.100202,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.156565,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              7332
+            ],
+            "after_timed_allocated_mib": [
+              7332
+            ],
+            "peak_allocated_mib": [
+              7952
+            ],
+            "setup_delta_mib": [
+              7324
+            ],
+            "timed_end_delta_mib": [
+              7324
+            ],
+            "peak_delta_mib": [
+              7944
+            ]
+          },
+          "experiment_name": "dataset_1_768d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 0.362886,
+          "total_timed_time_s": 0.032114,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.050178,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              1839,
+              1839,
+              1839,
+              1839
+            ],
+            "after_timed_allocated_mib": [
+              1839,
+              1839,
+              1839,
+              1839
+            ],
+            "peak_allocated_mib": [
+              1994,
+              1994,
+              1994,
+              1994
+            ],
+            "setup_delta_mib": [
+              1831,
+              1831,
+              1831,
+              1831
+            ],
+            "timed_end_delta_mib": [
+              1831,
+              1831,
+              1831,
+              1831
+            ],
+            "peak_delta_mib": [
+              1986,
+              1986,
+              1986,
+              1986
+            ]
+          },
+          "experiment_name": "dataset_1_768d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "experiment_name": "dataset_2_2048d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048",
+      "dataset_meta": {
+        "n": 5000000,
+        "d": 2048,
+        "q": 64,
+        "dtype": "fp32",
+        "np_dtype": "<class 'numpy.float32'>",
+        "seed": 42,
+        "normalize": true,
+        "id_offset": 0,
+        "files": {
+          "bank": "bank.dat",
+          "queries": "queries.dat",
+          "ids": "ids.dat"
+        },
+        "shapes": {
+          "bank": [
+            5000000,
+            2048
+          ],
+          "queries": [
+            64,
+            2048
+          ],
+          "ids": [
+            5000000
+          ]
+        },
+        "generation_time_s": 1702.97
+      },
+      "settings": {
+        "metric": "ip",
+        "top_k": 10,
+        "precisions": [
+          "fp32",
+          "fp16"
+        ],
+        "gpu_modes": [
+          "single",
+          "multi"
+        ],
+        "frameworks": [
+          "torch"
+        ],
+        "warmup_runs": 2,
+        "timed_runs": 10,
+        "torch_batch_size": 64,
+        "faiss_batch_size": 256,
+        "nprobe": 1
+      },
+      "results": [
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 7.469388,
+          "total_timed_time_s": 0.771461,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 1.205408,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              39070
+            ],
+            "after_timed_allocated_mib": [
+              39070
+            ],
+            "peak_allocated_mib": [
+              40301
+            ],
+            "setup_delta_mib": [
+              39062
+            ],
+            "timed_end_delta_mib": [
+              39062
+            ],
+            "peak_delta_mib": [
+              40293
+            ]
+          },
+          "experiment_name": "dataset_2_2048d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 3.014994,
+          "total_timed_time_s": 0.206745,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.323039,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              9773,
+              9774,
+              9774,
+              9774
+            ],
+            "after_timed_allocated_mib": [
+              9773,
+              9774,
+              9774,
+              9774
+            ],
+            "peak_allocated_mib": [
+              10081,
+              10083,
+              10083,
+              10083
+            ],
+            "setup_delta_mib": [
+              9765,
+              9766,
+              9766,
+              9766
+            ],
+            "timed_end_delta_mib": [
+              9765,
+              9766,
+              9766,
+              9766
+            ],
+            "peak_delta_mib": [
+              10073,
+              10075,
+              10075,
+              10075
+            ]
+          },
+          "experiment_name": "dataset_2_2048d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 0.937272,
+          "total_timed_time_s": 0.182194,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.284677,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              19539
+            ],
+            "after_timed_allocated_mib": [
+              19539
+            ],
+            "peak_allocated_mib": [
+              20159
+            ],
+            "setup_delta_mib": [
+              19531
+            ],
+            "timed_end_delta_mib": [
+              19531
+            ],
+            "peak_delta_mib": [
+              20151
+            ]
+          },
+          "experiment_name": "dataset_2_2048d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 0.953093,
+          "total_timed_time_s": 0.052933,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.082708,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              4890,
+              4890,
+              4890,
+              4890
+            ],
+            "after_timed_allocated_mib": [
+              4890,
+              4890,
+              4890,
+              4890
+            ],
+            "peak_allocated_mib": [
+              5046,
+              5046,
+              5046,
+              5046
+            ],
+            "setup_delta_mib": [
+              4882,
+              4882,
+              4882,
+              4882
+            ],
+            "timed_end_delta_mib": [
+              4882,
+              4882,
+              4882,
+              4882
+            ],
+            "peak_delta_mib": [
+              5038,
+              5038,
+              5038,
+              5038
+            ]
+          },
+          "experiment_name": "dataset_2_2048d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "experiment_name": "dataset_2_2304d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304",
+      "dataset_meta": {
+        "n": 5000000,
+        "d": 2304,
+        "q": 64,
+        "dtype": "fp32",
+        "np_dtype": "<class 'numpy.float32'>",
+        "seed": 42,
+        "normalize": true,
+        "id_offset": 0,
+        "files": {
+          "bank": "bank.dat",
+          "queries": "queries.dat",
+          "ids": "ids.dat"
+        },
+        "shapes": {
+          "bank": [
+            5000000,
+            2304
+          ],
+          "queries": [
+            64,
+            2304
+          ],
+          "ids": [
+            5000000
+          ]
+        },
+        "generation_time_s": 1685.97
+      },
+      "settings": {
+        "metric": "ip",
+        "top_k": 10,
+        "precisions": [
+          "fp32",
+          "fp16"
+        ],
+        "gpu_modes": [
+          "single",
+          "multi"
+        ],
+        "frameworks": [
+          "torch"
+        ],
+        "warmup_runs": 2,
+        "timed_runs": 10,
+        "torch_batch_size": 64,
+        "faiss_batch_size": 256,
+        "nprobe": 1
+      },
+      "results": [
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 8.829105,
+          "total_timed_time_s": 0.852706,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 1.332354,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              43954
+            ],
+            "after_timed_allocated_mib": [
+              43954
+            ],
+            "peak_allocated_mib": [
+              45185
+            ],
+            "setup_delta_mib": [
+              43946
+            ],
+            "timed_end_delta_mib": [
+              43946
+            ],
+            "peak_delta_mib": [
+              45177
+            ]
+          },
+          "experiment_name": "dataset_2_2304d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 3.413897,
+          "total_timed_time_s": 0.228408,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.356888,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              10994,
+              10994,
+              10994,
+              10994
+            ],
+            "after_timed_allocated_mib": [
+              10994,
+              10994,
+              10994,
+              10994
+            ],
+            "peak_allocated_mib": [
+              11302,
+              11303,
+              11303,
+              11303
+            ],
+            "setup_delta_mib": [
+              10986,
+              10986,
+              10986,
+              10986
+            ],
+            "timed_end_delta_mib": [
+              10986,
+              10986,
+              10986,
+              10986
+            ],
+            "peak_delta_mib": [
+              11294,
+              11295,
+              11295,
+              11295
+            ]
+          },
+          "experiment_name": "dataset_2_2304d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 1.062381,
+          "total_timed_time_s": 0.197838,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.309122,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              21980
+            ],
+            "after_timed_allocated_mib": [
+              21980
+            ],
+            "peak_allocated_mib": [
+              22601
+            ],
+            "setup_delta_mib": [
+              21972
+            ],
+            "timed_end_delta_mib": [
+              21972
+            ],
+            "peak_delta_mib": [
+              22593
+            ]
+          },
+          "experiment_name": "dataset_2_2304d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 1.071022,
+          "total_timed_time_s": 0.05632,
+          "queries_timed": 640,
+          "avg_time_per_query_ms": 0.088,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              5501,
+              5501,
+              5501,
+              5501
+            ],
+            "after_timed_allocated_mib": [
+              5501,
+              5501,
+              5501,
+              5501
+            ],
+            "peak_allocated_mib": [
+              5656,
+              5656,
+              5656,
+              5656
+            ],
+            "setup_delta_mib": [
+              5493,
+              5493,
+              5493,
+              5493
+            ],
+            "timed_end_delta_mib": [
+              5493,
+              5493,
+              5493,
+              5493
+            ],
+            "peak_delta_mib": [
+              5648,
+              5648,
+              5648,
+              5648
+            ]
+          },
+          "experiment_name": "dataset_2_2304d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "experiment_name": "dataset_3_4096d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096",
+      "dataset_meta": {
+        "n": 5000000,
+        "d": 4096,
+        "q": 64,
+        "dtype": "fp32",
+        "np_dtype": "<class 'numpy.float32'>",
+        "seed": 42,
+        "normalize": true,
+        "id_offset": 0,
+        "files": {
+          "bank": "bank.dat",
+          "queries": "queries.dat",
+          "ids": "ids.dat"
+        },
+        "shapes": {
+          "bank": [
+            5000000,
+            4096
+          ],
+          "queries": [
+            64,
+            4096
+          ],
+          "ids": [
+            5000000
+          ]
+        },
+        "generation_time_s": 3119.72
+      },
+      "settings": {
+        "metric": "ip",
+        "top_k": 10,
+        "precisions": [
+          "fp32",
+          "fp16"
+        ],
+        "gpu_modes": [
+          "single",
+          "multi"
+        ],
+        "frameworks": [
+          "torch"
+        ],
+        "warmup_runs": 2,
+        "timed_runs": 20,
+        "torch_batch_size": 64,
+        "faiss_batch_size": 256,
+        "nprobe": 1
+      },
+      "results": [
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 9.825344,
+          "total_timed_time_s": 2.915874,
+          "queries_timed": 1280,
+          "avg_time_per_query_ms": 2.278027,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              78134
+            ],
+            "after_timed_allocated_mib": [
+              78134
+            ],
+            "peak_allocated_mib": [
+              79365
+            ],
+            "setup_delta_mib": [
+              78126
+            ],
+            "timed_end_delta_mib": [
+              78126
+            ],
+            "peak_delta_mib": [
+              79357
+            ]
+          },
+          "experiment_name": "dataset_3_4096d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp32",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 4.191625,
+          "total_timed_time_s": 0.75913,
+          "queries_timed": 1280,
+          "avg_time_per_query_ms": 0.59307,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              19539,
+              19540,
+              19540,
+              19540
+            ],
+            "after_timed_allocated_mib": [
+              19539,
+              19540,
+              19540,
+              19540
+            ],
+            "peak_allocated_mib": [
+              19848,
+              19849,
+              19849,
+              19849
+            ],
+            "setup_delta_mib": [
+              19531,
+              19532,
+              19532,
+              19532
+            ],
+            "timed_end_delta_mib": [
+              19531,
+              19532,
+              19532,
+              19532
+            ],
+            "peak_delta_mib": [
+              19840,
+              19841,
+              19841,
+              19841
+            ]
+          },
+          "experiment_name": "dataset_3_4096d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "single",
+          "metric": "ip",
+          "setup_time_s": 1.887306,
+          "total_timed_time_s": 0.61194,
+          "queries_timed": 1280,
+          "avg_time_per_query_ms": 0.478078,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0
+            ],
+            "before_allocated_mib": [
+              8
+            ],
+            "after_setup_allocated_mib": [
+              39070
+            ],
+            "after_timed_allocated_mib": [
+              39070
+            ],
+            "peak_allocated_mib": [
+              39691
+            ],
+            "setup_delta_mib": [
+              39062
+            ],
+            "timed_end_delta_mib": [
+              39062
+            ],
+            "peak_delta_mib": [
+              39683
+            ]
+          },
+          "experiment_name": "dataset_3_4096d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+        },
+        {
+          "framework": "torch",
+          "precision": "fp16",
+          "gpu_mode": "multi",
+          "metric": "ip",
+          "setup_time_s": 1.91504,
+          "total_timed_time_s": 0.168472,
+          "queries_timed": 1280,
+          "avg_time_per_query_ms": 0.131619,
+          "batch_size": 64,
+          "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "before_allocated_mib": [
+              8,
+              8,
+              8,
+              8
+            ],
+            "after_setup_allocated_mib": [
+              9773,
+              9774,
+              9774,
+              9774
+            ],
+            "after_timed_allocated_mib": [
+              9773,
+              9774,
+              9774,
+              9774
+            ],
+            "peak_allocated_mib": [
+              9929,
+              9929,
+              9929,
+              9929
+            ],
+            "setup_delta_mib": [
+              9765,
+              9766,
+              9766,
+              9766
+            ],
+            "timed_end_delta_mib": [
+              9765,
+              9766,
+              9766,
+              9766
+            ],
+            "peak_delta_mib": [
+              9921,
+              9921,
+              9921,
+              9921
+            ]
+          },
+          "experiment_name": "dataset_3_4096d",
+          "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+        }
+      ],
+      "failures": []
+    }
+  ],
+  "results": [
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 1.698845,
+      "total_timed_time_s": 0.346452,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.541331,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          0
+        ],
+        "after_setup_allocated_mib": [
+          14648
+        ],
+        "after_timed_allocated_mib": [
+          14656
+        ],
+        "peak_allocated_mib": [
+          15887
+        ],
+        "setup_delta_mib": [
+          14648
+        ],
+        "timed_end_delta_mib": [
+          14656
+        ],
+        "peak_delta_mib": [
+          15887
+        ]
+      },
+      "experiment_name": "dataset_1_768d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 0.778062,
+      "total_timed_time_s": 0.091794,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.143428,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          0,
+          0,
+          0
+        ],
+        "after_setup_allocated_mib": [
+          3670,
+          3662,
+          3662,
+          3662
+        ],
+        "after_timed_allocated_mib": [
+          3670,
+          3670,
+          3670,
+          3670
+        ],
+        "peak_allocated_mib": [
+          3978,
+          3978,
+          3978,
+          3978
+        ],
+        "setup_delta_mib": [
+          3662,
+          3662,
+          3662,
+          3662
+        ],
+        "timed_end_delta_mib": [
+          3662,
+          3670,
+          3670,
+          3670
+        ],
+        "peak_delta_mib": [
+          3970,
+          3978,
+          3978,
+          3978
+        ]
+      },
+      "experiment_name": "dataset_1_768d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 0.360961,
+      "total_timed_time_s": 0.100202,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.156565,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          7332
+        ],
+        "after_timed_allocated_mib": [
+          7332
+        ],
+        "peak_allocated_mib": [
+          7952
+        ],
+        "setup_delta_mib": [
+          7324
+        ],
+        "timed_end_delta_mib": [
+          7324
+        ],
+        "peak_delta_mib": [
+          7944
+        ]
+      },
+      "experiment_name": "dataset_1_768d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 0.362886,
+      "total_timed_time_s": 0.032114,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.050178,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          1839,
+          1839,
+          1839,
+          1839
+        ],
+        "after_timed_allocated_mib": [
+          1839,
+          1839,
+          1839,
+          1839
+        ],
+        "peak_allocated_mib": [
+          1994,
+          1994,
+          1994,
+          1994
+        ],
+        "setup_delta_mib": [
+          1831,
+          1831,
+          1831,
+          1831
+        ],
+        "timed_end_delta_mib": [
+          1831,
+          1831,
+          1831,
+          1831
+        ],
+        "peak_delta_mib": [
+          1986,
+          1986,
+          1986,
+          1986
+        ]
+      },
+      "experiment_name": "dataset_1_768d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 7.469388,
+      "total_timed_time_s": 0.771461,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 1.205408,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          39070
+        ],
+        "after_timed_allocated_mib": [
+          39070
+        ],
+        "peak_allocated_mib": [
+          40301
+        ],
+        "setup_delta_mib": [
+          39062
+        ],
+        "timed_end_delta_mib": [
+          39062
+        ],
+        "peak_delta_mib": [
+          40293
+        ]
+      },
+      "experiment_name": "dataset_2_2048d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 3.014994,
+      "total_timed_time_s": 0.206745,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.323039,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          9773,
+          9774,
+          9774,
+          9774
+        ],
+        "after_timed_allocated_mib": [
+          9773,
+          9774,
+          9774,
+          9774
+        ],
+        "peak_allocated_mib": [
+          10081,
+          10083,
+          10083,
+          10083
+        ],
+        "setup_delta_mib": [
+          9765,
+          9766,
+          9766,
+          9766
+        ],
+        "timed_end_delta_mib": [
+          9765,
+          9766,
+          9766,
+          9766
+        ],
+        "peak_delta_mib": [
+          10073,
+          10075,
+          10075,
+          10075
+        ]
+      },
+      "experiment_name": "dataset_2_2048d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 0.937272,
+      "total_timed_time_s": 0.182194,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.284677,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          19539
+        ],
+        "after_timed_allocated_mib": [
+          19539
+        ],
+        "peak_allocated_mib": [
+          20159
+        ],
+        "setup_delta_mib": [
+          19531
+        ],
+        "timed_end_delta_mib": [
+          19531
+        ],
+        "peak_delta_mib": [
+          20151
+        ]
+      },
+      "experiment_name": "dataset_2_2048d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 0.953093,
+      "total_timed_time_s": 0.052933,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.082708,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          4890,
+          4890,
+          4890,
+          4890
+        ],
+        "after_timed_allocated_mib": [
+          4890,
+          4890,
+          4890,
+          4890
+        ],
+        "peak_allocated_mib": [
+          5046,
+          5046,
+          5046,
+          5046
+        ],
+        "setup_delta_mib": [
+          4882,
+          4882,
+          4882,
+          4882
+        ],
+        "timed_end_delta_mib": [
+          4882,
+          4882,
+          4882,
+          4882
+        ],
+        "peak_delta_mib": [
+          5038,
+          5038,
+          5038,
+          5038
+        ]
+      },
+      "experiment_name": "dataset_2_2048d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 8.829105,
+      "total_timed_time_s": 0.852706,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 1.332354,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          43954
+        ],
+        "after_timed_allocated_mib": [
+          43954
+        ],
+        "peak_allocated_mib": [
+          45185
+        ],
+        "setup_delta_mib": [
+          43946
+        ],
+        "timed_end_delta_mib": [
+          43946
+        ],
+        "peak_delta_mib": [
+          45177
+        ]
+      },
+      "experiment_name": "dataset_2_2304d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 3.413897,
+      "total_timed_time_s": 0.228408,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.356888,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          10994,
+          10994,
+          10994,
+          10994
+        ],
+        "after_timed_allocated_mib": [
+          10994,
+          10994,
+          10994,
+          10994
+        ],
+        "peak_allocated_mib": [
+          11302,
+          11303,
+          11303,
+          11303
+        ],
+        "setup_delta_mib": [
+          10986,
+          10986,
+          10986,
+          10986
+        ],
+        "timed_end_delta_mib": [
+          10986,
+          10986,
+          10986,
+          10986
+        ],
+        "peak_delta_mib": [
+          11294,
+          11295,
+          11295,
+          11295
+        ]
+      },
+      "experiment_name": "dataset_2_2304d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 1.062381,
+      "total_timed_time_s": 0.197838,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.309122,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          21980
+        ],
+        "after_timed_allocated_mib": [
+          21980
+        ],
+        "peak_allocated_mib": [
+          22601
+        ],
+        "setup_delta_mib": [
+          21972
+        ],
+        "timed_end_delta_mib": [
+          21972
+        ],
+        "peak_delta_mib": [
+          22593
+        ]
+      },
+      "experiment_name": "dataset_2_2304d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 1.071022,
+      "total_timed_time_s": 0.05632,
+      "queries_timed": 640,
+      "avg_time_per_query_ms": 0.088,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          5501,
+          5501,
+          5501,
+          5501
+        ],
+        "after_timed_allocated_mib": [
+          5501,
+          5501,
+          5501,
+          5501
+        ],
+        "peak_allocated_mib": [
+          5656,
+          5656,
+          5656,
+          5656
+        ],
+        "setup_delta_mib": [
+          5493,
+          5493,
+          5493,
+          5493
+        ],
+        "timed_end_delta_mib": [
+          5493,
+          5493,
+          5493,
+          5493
+        ],
+        "peak_delta_mib": [
+          5648,
+          5648,
+          5648,
+          5648
+        ]
+      },
+      "experiment_name": "dataset_2_2304d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 9.825344,
+      "total_timed_time_s": 2.915874,
+      "queries_timed": 1280,
+      "avg_time_per_query_ms": 2.278027,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          78134
+        ],
+        "after_timed_allocated_mib": [
+          78134
+        ],
+        "peak_allocated_mib": [
+          79365
+        ],
+        "setup_delta_mib": [
+          78126
+        ],
+        "timed_end_delta_mib": [
+          78126
+        ],
+        "peak_delta_mib": [
+          79357
+        ]
+      },
+      "experiment_name": "dataset_3_4096d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp32",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 4.191625,
+      "total_timed_time_s": 0.75913,
+      "queries_timed": 1280,
+      "avg_time_per_query_ms": 0.59307,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          19539,
+          19540,
+          19540,
+          19540
+        ],
+        "after_timed_allocated_mib": [
+          19539,
+          19540,
+          19540,
+          19540
+        ],
+        "peak_allocated_mib": [
+          19848,
+          19849,
+          19849,
+          19849
+        ],
+        "setup_delta_mib": [
+          19531,
+          19532,
+          19532,
+          19532
+        ],
+        "timed_end_delta_mib": [
+          19531,
+          19532,
+          19532,
+          19532
+        ],
+        "peak_delta_mib": [
+          19840,
+          19841,
+          19841,
+          19841
+        ]
+      },
+      "experiment_name": "dataset_3_4096d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "single",
+      "metric": "ip",
+      "setup_time_s": 1.887306,
+      "total_timed_time_s": 0.61194,
+      "queries_timed": 1280,
+      "avg_time_per_query_ms": 0.478078,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0
+        ],
+        "before_allocated_mib": [
+          8
+        ],
+        "after_setup_allocated_mib": [
+          39070
+        ],
+        "after_timed_allocated_mib": [
+          39070
+        ],
+        "peak_allocated_mib": [
+          39691
+        ],
+        "setup_delta_mib": [
+          39062
+        ],
+        "timed_end_delta_mib": [
+          39062
+        ],
+        "peak_delta_mib": [
+          39683
+        ]
+      },
+      "experiment_name": "dataset_3_4096d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+    },
+    {
+      "framework": "torch",
+      "precision": "fp16",
+      "gpu_mode": "multi",
+      "metric": "ip",
+      "setup_time_s": 1.91504,
+      "total_timed_time_s": 0.168472,
+      "queries_timed": 1280,
+      "avg_time_per_query_ms": 0.131619,
+      "batch_size": 64,
+      "gpu_memory": {
+        "unit": "MiB",
+        "gpu_ids": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "before_allocated_mib": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "after_setup_allocated_mib": [
+          9773,
+          9774,
+          9774,
+          9774
+        ],
+        "after_timed_allocated_mib": [
+          9773,
+          9774,
+          9774,
+          9774
+        ],
+        "peak_allocated_mib": [
+          9929,
+          9929,
+          9929,
+          9929
+        ],
+        "setup_delta_mib": [
+          9765,
+          9766,
+          9766,
+          9766
+        ],
+        "timed_end_delta_mib": [
+          9765,
+          9766,
+          9766,
+          9766
+        ],
+        "peak_delta_mib": [
+          9921,
+          9921,
+          9921,
+          9921
+        ]
+      },
+      "experiment_name": "dataset_3_4096d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096"
+    }
+  ],
+  "failures": []
+}

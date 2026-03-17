@@ -18,15 +18,19 @@
   "experiments": [
     {
       "name": "dataset_1_768d",
-      "dataset_path": "/path/to/embedding_dataset_1"
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_768"
     },
     {
       "name": "dataset_2_2048d",
-      "dataset_path": "/path/to/embedding_dataset_2"
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2048"
+    },
+    {
+      "name": "dataset_2_2304d",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_2304"
     },
     {
       "name": "dataset_3_4096d",
-      "dataset_path": "/path/to/embedding_dataset_3",
+      "dataset_path": "/mnt/projects/tool-control/results/embeddings_5M_4096",
       "timed_runs": 20,
       "frameworks": [
         "torch"
@@ -34,7 +38,6 @@
     }
   ],
   "frameworks": [
-    "torch",
-    "faiss"
+    "torch"
   ]
 }
