@@ -2,8 +2,14 @@
   "output_json": "benchmark_results.json",
   "metric": "ip",
   "top_k": 10,
-  "precisions": ["fp32", "fp16"],
-  "gpu_modes": ["single", "multi"],
+  "precisions": [
+    "fp32",
+    "fp16"
+  ],
+  "gpu_modes": [
+    "single",
+    "multi"
+  ],
   "warmup_runs": 2,
   "timed_runs": 10,
   "torch_batch_size": 64,
@@ -21,7 +27,14 @@
     {
       "name": "dataset_3_4096d",
       "dataset_path": "/path/to/embedding_dataset_3",
-      "timed_runs": 20
+      "timed_runs": 20,
+      "frameworks": [
+        "torch"
+      ]
     }
+  ],
+  "frameworks": [
+    "torch",
+    "faiss"
   ]
 }
