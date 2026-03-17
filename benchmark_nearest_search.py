@@ -7,6 +7,8 @@ It supports:
 - single-GPU + multi-GPU modes
 - Torch brute-force top-k search
 - FAISS Flat index search (GPU)
+- configurable frameworks per run: torch, faiss, or both
+- per-run GPU memory usage reporting (per GPU in multi-GPU mode)
 - multiple datasets/experiments in one run
 
 Dataset format expected is the output from `generate_embedding_dataset.py`:
@@ -20,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import multiprocessing as mp
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Tuple
@@ -37,6 +40,7 @@ DEFAULTS: Dict[str, Any] = {
     "torch_batch_size": 64,
     "faiss_batch_size": 256,
     "nprobe": 1,
+    "frameworks": ["torch", "faiss"],
 }
 
 
@@ -115,6 +119,68 @@ def chunk_iter(total: int, batch_size: int) -> Sequence[Tuple[int, int]]:
     return [(start, min(start + batch_size, total)) for start in range(0, total, batch_size)]
 
 
+def _query_gpu_memory_used_mib() -> List[int] | None:
+    """Return per-GPU used memory (MiB) from nvidia-smi, or None if unavailable."""
+    try:
+        proc = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used",
+                "--format=csv,noheader,nounits",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return None
+
+    values: List[int] = []
+    for line in proc.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            values.append(int(line))
+        except ValueError:
+            return None
+    return values
+
+
+def _build_gpu_memory_report(
+    before_mib: Sequence[int] | None,
+    after_setup_mib: Sequence[int] | None,
+    after_timed_mib: Sequence[int] | None,
+    peak_mib: Sequence[int] | None,
+) -> Dict[str, Any] | None:
+    if not before_mib:
+        return None
+
+    n = len(before_mib)
+    if n == 0:
+        return None
+
+    def deltas(values: Sequence[int] | None) -> List[int] | None:
+        if values is None or len(values) < n:
+            return None
+        return [max(0, values[i] - before_mib[i]) for i in range(n)]
+
+    setup_delta = deltas(after_setup_mib)
+    timed_end_delta = deltas(after_timed_mib)
+    peak_delta = deltas(peak_mib)
+
+    return {
+        "unit": "MiB",
+        "before_used_mib": list(before_mib),
+        "after_setup_used_mib": list(after_setup_mib) if after_setup_mib is not None else None,
+        "after_timed_used_mib": list(after_timed_mib) if after_timed_mib is not None else None,
+        "peak_used_mib": list(peak_mib) if peak_mib is not None else None,
+        "setup_delta_mib": setup_delta,
+        "timed_end_delta_mib": timed_end_delta,
+        "peak_delta_mib": peak_delta,
+    }
+
+
 def bench_torch(
     bank_np: np.ndarray,
     queries_np: np.ndarray,
@@ -139,6 +205,12 @@ def bench_torch(
     bank_cast = bank_np.astype(np.float32 if precision == "fp32" else np.float16, copy=False)
     queries_cast = queries_np.astype(np.float32 if precision == "fp32" else np.float16, copy=False)
 
+    tracked_gpu_ids = [0] if gpu_mode == "single" else list(range(num_gpus))
+    for gpu_id in tracked_gpu_ids:
+        torch.cuda.reset_peak_memory_stats(gpu_id)
+
+    mem_before = [int(torch.cuda.memory_allocated(gpu_id) / (1024 * 1024)) for gpu_id in tracked_gpu_ids]
+
     setup_t0 = time.perf_counter()
 
     if gpu_mode == "single":
@@ -156,6 +228,7 @@ def bench_torch(
             shard_tensors.append(shard)
 
     setup_t1 = time.perf_counter()
+    mem_after_setup = [int(torch.cuda.memory_allocated(gpu_id) / (1024 * 1024)) for gpu_id in tracked_gpu_ids]
 
     def run_once() -> None:
         for qs, qe in chunk_iter(queries_cast.shape[0], batch_size):
@@ -195,6 +268,9 @@ def bench_torch(
         run_once()
     t1 = time.perf_counter()
 
+    mem_after_timed = [int(torch.cuda.memory_allocated(gpu_id) / (1024 * 1024)) for gpu_id in tracked_gpu_ids]
+    mem_peak = [int(torch.cuda.max_memory_allocated(gpu_id) / (1024 * 1024)) for gpu_id in tracked_gpu_ids]
+
     total_queries = queries_cast.shape[0] * timed_runs
     total_ms = (t1 - t0) * 1000.0
 
@@ -208,6 +284,17 @@ def bench_torch(
         "queries_timed": total_queries,
         "avg_time_per_query_ms": round(total_ms / total_queries, 6),
         "batch_size": batch_size,
+        "gpu_memory": {
+            "unit": "MiB",
+            "gpu_ids": tracked_gpu_ids,
+            "before_allocated_mib": mem_before,
+            "after_setup_allocated_mib": mem_after_setup,
+            "after_timed_allocated_mib": mem_after_timed,
+            "peak_allocated_mib": mem_peak,
+            "setup_delta_mib": [max(0, mem_after_setup[i] - mem_before[i]) for i in range(len(tracked_gpu_ids))],
+            "timed_end_delta_mib": [max(0, mem_after_timed[i] - mem_before[i]) for i in range(len(tracked_gpu_ids))],
+            "peak_delta_mib": [max(0, mem_peak[i] - mem_before[i]) for i in range(len(tracked_gpu_ids))],
+        },
     }
 
 
@@ -229,6 +316,9 @@ def bench_faiss(
     queries_f32 = np.asarray(queries_np, dtype=np.float32)
 
     cpu_index = faiss.IndexFlatL2(bank_f32.shape[1]) if metric == "l2" else faiss.IndexFlatIP(bank_f32.shape[1])
+
+    mem_before = _query_gpu_memory_used_mib()
+    mem_peak = list(mem_before) if mem_before is not None else None
 
     setup_t0 = time.perf_counter()
 
@@ -253,6 +343,9 @@ def bench_faiss(
         index.nprobe = nprobe
 
     setup_t1 = time.perf_counter()
+    mem_after_setup = _query_gpu_memory_used_mib()
+    if mem_peak is not None and mem_after_setup is not None and len(mem_after_setup) == len(mem_peak):
+        mem_peak = [max(mem_peak[i], mem_after_setup[i]) for i in range(len(mem_peak))]
 
     def run_once() -> None:
         for qs, qe in chunk_iter(queries_f32.shape[0], batch_size):
@@ -260,11 +353,21 @@ def bench_faiss(
 
     for _ in range(warmup_runs):
         run_once()
+        snap = _query_gpu_memory_used_mib()
+        if mem_peak is not None and snap is not None and len(snap) == len(mem_peak):
+            mem_peak = [max(mem_peak[i], snap[i]) for i in range(len(mem_peak))]
 
     t0 = time.perf_counter()
     for _ in range(timed_runs):
         run_once()
+        snap = _query_gpu_memory_used_mib()
+        if mem_peak is not None and snap is not None and len(snap) == len(mem_peak):
+            mem_peak = [max(mem_peak[i], snap[i]) for i in range(len(mem_peak))]
     t1 = time.perf_counter()
+
+    mem_after_timed = _query_gpu_memory_used_mib()
+    if mem_peak is not None and mem_after_timed is not None and len(mem_after_timed) == len(mem_peak):
+        mem_peak = [max(mem_peak[i], mem_after_timed[i]) for i in range(len(mem_peak))]
 
     total_queries = queries_f32.shape[0] * timed_runs
     total_ms = (t1 - t0) * 1000.0
@@ -280,6 +383,7 @@ def bench_faiss(
         "avg_time_per_query_ms": round(total_ms / total_queries, 6),
         "batch_size": batch_size,
         "nprobe": nprobe,
+        "gpu_memory": _build_gpu_memory_report(mem_before, mem_after_setup, mem_after_timed, mem_peak),
     }
 
 
@@ -316,6 +420,21 @@ def bench_faiss_isolated(**kwargs: Any) -> Dict[str, Any]:
     raise RuntimeError(f"FAISS subprocess exited with code {proc.exitcode}")
 
 
+def _normalize_frameworks(frameworks: Sequence[str]) -> List[str]:
+    if isinstance(frameworks, str):
+        raise ValueError("frameworks must be a list, e.g. [\"torch\", \"faiss\"]")
+
+    normalized: List[str] = []
+    for framework in frameworks:
+        if framework not in {"torch", "faiss"}:
+            raise ValueError(f"Unsupported framework: {framework}")
+        if framework not in normalized:
+            normalized.append(framework)
+    if not normalized:
+        raise ValueError("At least one framework must be configured")
+    return normalized
+
+
 def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
     dataset_path = Path(exp_cfg["dataset_path"])
     data = load_dataset(dataset_path)
@@ -323,6 +442,19 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
 
     results: List[Dict[str, Any]] = []
     failures: List[Dict[str, Any]] = []
+
+    raw_frameworks = exp_cfg["frameworks"]
+    try:
+        frameworks = _normalize_frameworks(raw_frameworks)
+    except ValueError as e:
+        failures.append(
+            {
+                "experiment_name": exp_cfg["name"],
+                "dataset_path": str(dataset_path),
+                "error": str(e),
+            }
+        )
+        frameworks = []
 
     for precision in exp_cfg["precisions"]:
         if precision not in {"fp32", "fp16"}:
@@ -333,7 +465,7 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
                 failures.append({"precision": precision, "gpu_mode": gpu_mode, "error": "Unsupported gpu_mode"})
                 continue
 
-            for framework in ("torch", "faiss"):
+            for framework in frameworks:
                 try:
                     if framework == "torch":
                         result = bench_torch(
@@ -392,6 +524,7 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
             "top_k": exp_cfg["top_k"],
             "precisions": exp_cfg["precisions"],
             "gpu_modes": exp_cfg["gpu_modes"],
+            "frameworks": frameworks if frameworks else raw_frameworks,
             "warmup_runs": exp_cfg["warmup_runs"],
             "timed_runs": exp_cfg["timed_runs"],
             "torch_batch_size": exp_cfg["torch_batch_size"],
