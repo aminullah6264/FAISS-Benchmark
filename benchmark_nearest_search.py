@@ -105,13 +105,21 @@ def load_dataset(dataset_path: Path) -> Dict[str, Any]:
 
     file_dtype = np.float16 if meta.get("dtype") == "fp16" else np.float32
 
-    bank = np.memmap(dataset_path / meta["files"]["bank"], dtype=file_dtype, mode="r", shape=(n, d))
+    bank = None
+    if "bank" in meta.get("files", {}):
+        bank = np.memmap(dataset_path / meta["files"]["bank"], dtype=file_dtype, mode="r", shape=(n, d))
+
     queries = np.memmap(dataset_path / meta["files"]["queries"], dtype=file_dtype, mode="r", shape=(q, d))
+
+    index_path = None
+    if "index" in meta.get("files", {}):
+        index_path = dataset_path / meta["files"]["index"]
 
     return {
         "meta": meta,
         "bank": bank,
         "queries": queries,
+        "index_path": index_path,
     }
 
 
@@ -321,7 +329,7 @@ def bench_torch(
 
 
 def bench_faiss(
-    bank_np: np.ndarray,
+    bank_np: np.ndarray | None,
     queries_np: np.ndarray,
     precision: str,
     gpu_mode: str,
@@ -337,7 +345,9 @@ def bench_faiss(
     bank_f32 = np.asarray(bank_np, dtype=np.float32)
     queries_f32 = np.asarray(queries_np, dtype=np.float32)
 
-    cpu_index = faiss.IndexFlatL2(bank_f32.shape[1]) if metric == "l2" else faiss.IndexFlatIP(bank_f32.shape[1])
+    cpu_index = None
+    if bank_np is not None:
+        cpu_index = faiss.IndexFlatL2(bank_f32.shape[1]) if metric == "l2" else faiss.IndexFlatIP(bank_f32.shape[1])
 
     mem_before = _query_gpu_memory_used_mib()
     mem_peak = list(mem_before) if mem_before is not None else None
@@ -345,6 +355,9 @@ def bench_faiss(
     setup_t0 = time.perf_counter()
 
     use_float16 = precision == "fp16"
+    if cpu_index is None:
+        raise ValueError("FAISS CPU index was not provided")
+
     if gpu_mode == "single":
         res = faiss.StandardGpuResources()
         co = faiss.GpuClonerOptions()
@@ -359,7 +372,8 @@ def bench_faiss(
         co.shard = True
         index = faiss.index_cpu_to_gpus_list(cpu_index, co, list(range(ngpu)))
 
-    index.add(bank_f32)
+    if bank_np is not None:
+        index.add(bank_f32)
 
     if hasattr(index, "nprobe"):
         index.nprobe = nprobe
@@ -409,9 +423,97 @@ def bench_faiss(
     }
 
 
+
+
+
+def bench_faiss_from_index(
+    cpu_index_path: str,
+    queries_np: np.ndarray,
+    precision: str,
+    gpu_mode: str,
+    top_k: int,
+    warmup_runs: int,
+    timed_runs: int,
+    batch_size: int,
+    nprobe: int,
+) -> Dict[str, Any]:
+    import faiss
+
+    queries_f32 = np.asarray(queries_np, dtype=np.float32)
+    cpu_index = faiss.read_index(cpu_index_path)
+
+    mem_before = _query_gpu_memory_used_mib()
+    mem_peak = list(mem_before) if mem_before is not None else None
+
+    setup_t0 = time.perf_counter()
+    use_float16 = precision == "fp16"
+
+    if gpu_mode == "single":
+        res = faiss.StandardGpuResources()
+        co = faiss.GpuClonerOptions()
+        co.useFloat16 = use_float16
+        index = faiss.index_cpu_to_gpu(res, 0, cpu_index, co)
+    else:
+        ngpu = faiss.get_num_gpus()
+        if ngpu < 2:
+            raise RuntimeError("Multi-GPU mode requested but fewer than 2 GPUs detected")
+        co = faiss.GpuMultipleClonerOptions()
+        co.useFloat16 = use_float16
+        co.shard = True
+        index = faiss.index_cpu_to_gpus_list(cpu_index, co, list(range(ngpu)))
+
+    if hasattr(index, "nprobe"):
+        index.nprobe = nprobe
+
+    setup_t1 = time.perf_counter()
+    mem_after_setup = _query_gpu_memory_used_mib()
+
+    def run_once() -> None:
+        for qs, qe in chunk_iter(queries_f32.shape[0], batch_size):
+            index.search(queries_f32[qs:qe], top_k)
+
+    for _ in range(warmup_runs):
+        run_once()
+        snap = _query_gpu_memory_used_mib()
+        if mem_peak is not None and snap is not None and len(snap) == len(mem_peak):
+            mem_peak = [max(mem_peak[i], snap[i]) for i in range(len(mem_peak))]
+
+    t0 = time.perf_counter()
+    for _ in range(timed_runs):
+        run_once()
+        snap = _query_gpu_memory_used_mib()
+        if mem_peak is not None and snap is not None and len(snap) == len(mem_peak):
+            mem_peak = [max(mem_peak[i], snap[i]) for i in range(len(mem_peak))]
+    t1 = time.perf_counter()
+
+    mem_after_timed = _query_gpu_memory_used_mib()
+    if mem_peak is not None and mem_after_timed is not None and len(mem_after_timed) == len(mem_peak):
+        mem_peak = [max(mem_peak[i], mem_after_timed[i]) for i in range(len(mem_peak))]
+
+    total_queries = queries_f32.shape[0] * timed_runs
+    total_ms = (t1 - t0) * 1000.0
+
+    return {
+        "framework": "faiss",
+        "precision": precision,
+        "gpu_mode": gpu_mode,
+        "metric": "from_index",
+        "setup_time_s": round(setup_t1 - setup_t0, 6),
+        "total_timed_time_s": round(t1 - t0, 6),
+        "queries_timed": total_queries,
+        "avg_time_per_query_ms": round(total_ms / total_queries, 6),
+        "batch_size": batch_size,
+        "nprobe": nprobe,
+        "source_index": cpu_index_path,
+        "gpu_memory": _build_gpu_memory_report(mem_before, mem_after_setup, mem_after_timed, mem_peak),
+    }
+
 def _bench_faiss_worker(args: Dict[str, Any], result_queue: "mp.Queue[Dict[str, Any]]") -> None:
     try:
-        result = bench_faiss(**args)
+        if args.get("cpu_index_path"):
+            result = bench_faiss_from_index(**args)
+        else:
+            result = bench_faiss(**args)
         result_queue.put({"ok": True, "result": result})
     except Exception as e:
         result_queue.put({"ok": False, "error": str(e)})
@@ -461,6 +563,7 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
     dataset_path = Path(exp_cfg["dataset_path"])
     data = load_dataset(dataset_path)
     bank, queries = data["bank"], data["queries"]
+    index_path = data.get("index_path")
 
     results: List[Dict[str, Any]] = []
     failures: List[Dict[str, Any]] = []
@@ -490,6 +593,8 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
             for framework in frameworks:
                 try:
                     if framework == "torch":
+                        if bank is None:
+                            raise RuntimeError("Torch benchmark requires dataset files.bank in meta.json")
                         result = bench_torch(
                             bank_np=bank,
                             queries_np=queries,
@@ -502,18 +607,27 @@ def run_experiment(exp_cfg: Dict[str, Any]) -> Dict[str, Any]:
                             batch_size=exp_cfg["torch_batch_size"],
                         )
                     else:
-                        result = bench_faiss_isolated(
-                            bank_np=bank,
+                        faiss_kwargs = dict(
                             queries_np=queries,
                             precision=precision,
                             gpu_mode=gpu_mode,
-                            metric=exp_cfg["metric"],
                             top_k=exp_cfg["top_k"],
                             warmup_runs=exp_cfg["warmup_runs"],
                             timed_runs=exp_cfg["timed_runs"],
                             batch_size=exp_cfg["faiss_batch_size"],
                             nprobe=exp_cfg["nprobe"],
                         )
+                        if index_path is not None:
+                            result = bench_faiss_isolated(
+                                cpu_index_path=str(index_path),
+                                **faiss_kwargs,
+                            )
+                        else:
+                            result = bench_faiss_isolated(
+                                bank_np=bank,
+                                metric=exp_cfg["metric"],
+                                **faiss_kwargs,
+                            )
                     result["experiment_name"] = exp_cfg["name"]
                     result["dataset_path"] = str(dataset_path)
                     print(
