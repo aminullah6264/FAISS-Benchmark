@@ -198,14 +198,32 @@ def bench_torch(
         raise RuntimeError("CUDA is not available for Torch benchmarking")
 
     num_gpus = torch.cuda.device_count()
-    if gpu_mode == "multi" and num_gpus < 2:
-        raise RuntimeError("Multi-GPU mode requested but fewer than 2 GPUs detected")
+    if num_gpus < 1:
+        raise RuntimeError("No CUDA devices detected for Torch benchmarking")
+
+    # Probe CUDA devices up-front because some environments expose a CUDA runtime
+    # but reject specific device ordinals at first allocation with
+    # "Invalid device argument". We only benchmark devices that pass a small
+    # allocation test.
+    available_device_ids = []
+    for gpu_id in range(num_gpus):
+        try:
+            torch.empty((1,), device=torch.device("cuda", gpu_id))
+            available_device_ids.append(gpu_id)
+        except Exception:
+            continue
+
+    if not available_device_ids:
+        raise RuntimeError("CUDA is available but no allocatable GPU device was found")
+
+    if gpu_mode == "multi" and len(available_device_ids) < 2:
+        raise RuntimeError("Multi-GPU mode requested but fewer than 2 allocatable GPUs detected")
 
     dtype = torch.float16 if precision == "fp16" else torch.float32
     bank_cast = bank_np.astype(np.float32 if precision == "fp32" else np.float16, copy=False)
     queries_cast = queries_np.astype(np.float32 if precision == "fp32" else np.float16, copy=False)
 
-    tracked_gpu_ids = [0] if gpu_mode == "single" else list(range(num_gpus))
+    tracked_gpu_ids = [available_device_ids[0]] if gpu_mode == "single" else available_device_ids
     for gpu_id in tracked_gpu_ids:
         torch.cuda.reset_peak_memory_stats(gpu_id)
 
@@ -214,17 +232,20 @@ def bench_torch(
     setup_t0 = time.perf_counter()
 
     if gpu_mode == "single":
-        bank_t = torch.from_numpy(bank_cast).to(device="cuda:0", dtype=dtype, non_blocking=True)
+        main_device = torch.device("cuda", tracked_gpu_ids[0])
+        bank_t = torch.from_numpy(bank_cast).to(device=main_device, dtype=dtype, non_blocking=True)
         shard_tensors = [bank_t]
     else:
         shard_tensors = []
-        per_gpu = int(np.ceil(bank_cast.shape[0] / num_gpus))
-        for gpu_id in range(num_gpus):
-            s = gpu_id * per_gpu
-            e = min((gpu_id + 1) * per_gpu, bank_cast.shape[0])
+        per_gpu = int(np.ceil(bank_cast.shape[0] / len(tracked_gpu_ids)))
+        for gpu_idx, gpu_id in enumerate(tracked_gpu_ids):
+            s = gpu_idx * per_gpu
+            e = min((gpu_idx + 1) * per_gpu, bank_cast.shape[0])
             if s >= e:
                 break
-            shard = torch.from_numpy(bank_cast[s:e]).to(device=f"cuda:{gpu_id}", dtype=dtype, non_blocking=True)
+            shard = torch.from_numpy(bank_cast[s:e]).to(
+                device=torch.device("cuda", gpu_id), dtype=dtype, non_blocking=True
+            )
             shard_tensors.append(shard)
 
     setup_t1 = time.perf_counter()
@@ -234,7 +255,7 @@ def bench_torch(
         for qs, qe in chunk_iter(queries_cast.shape[0], batch_size):
             q_np = queries_cast[qs:qe]
             if gpu_mode == "single":
-                q = torch.from_numpy(q_np).to(device="cuda:0", dtype=dtype, non_blocking=True)
+                q = torch.from_numpy(q_np).to(device=shard_tensors[0].device, dtype=dtype, non_blocking=True)
                 sims = q @ shard_tensors[0].T
                 if metric == "l2":
                     sims = -torch.cdist(q, shard_tensors[0])
@@ -243,14 +264,15 @@ def bench_torch(
                 per_gpu_vals = []
                 per_gpu_idx = []
                 offset = 0
-                for gpu_id, shard in enumerate(shard_tensors):
-                    q = torch.from_numpy(q_np).to(device=f"cuda:{gpu_id}", dtype=dtype, non_blocking=True)
+                gather_device = shard_tensors[0].device
+                for shard in shard_tensors:
+                    q = torch.from_numpy(q_np).to(device=shard.device, dtype=dtype, non_blocking=True)
                     sims = q @ shard.T
                     if metric == "l2":
                         sims = -torch.cdist(q, shard)
                     vals, idx = torch.topk(sims, k=top_k, dim=1)
-                    per_gpu_vals.append(vals.to(device="cuda:0"))
-                    per_gpu_idx.append((idx + offset).to(device="cuda:0"))
+                    per_gpu_vals.append(vals.to(device=gather_device))
+                    per_gpu_idx.append((idx + offset).to(device=gather_device))
                     offset += shard.shape[0]
 
                 merged_vals = torch.cat(per_gpu_vals, dim=1)
